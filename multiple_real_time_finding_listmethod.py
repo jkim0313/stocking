@@ -2,7 +2,6 @@ import os
 import sys
 import time
 import win32com.client
-import sqlite3
 
 import naver_crawling.naver_finance_crawling as nfc
 
@@ -12,17 +11,15 @@ from PyQt5.QtWidgets import *
 
 # 복수 종목 실시간 조회 샘플 (조회는 없고 실시간만 있음)
 class CpEvent:
-    cnt2 = 0
 
     def set_params(self, client):
         self.client = client
 
-    # 11시 12분 시작 - 1시 18분 종료 sk바사 10917 naver 19779 삼성생명 2495 삼성전자 23260 영원무역 711 삼성화재 1845
     def OnReceived(self):
-        conn = sqlite3.connect("stock_price(cur).db", isolation_level=None)
         code = self.client.GetHeaderValue(0)  # 코드
         name = self.client.GetHeaderValue(1)  # 종목명
         diff = self.client.GetHeaderValue(2)  # 전일대비
+        t_time = self.client.GetHeaderValue(3)  # 전일대비
         cur_price = self.client.GetHeaderValue(4)  # 시가
         high_price = self.client.GetHeaderValue(5)  # 고가
         low_price = self.client.GetHeaderValue(6)  # 저가
@@ -35,46 +32,17 @@ class CpEvent:
         acc_buy_deal_vol = self.client.GetHeaderValue(16)  # 누적매수체결수량(체결가방식)
         moment_deal_vol = self.client.GetHeaderValue(17)  # 순간체결수량
         timess1 = time.strftime('%Y%m%d')
-        date_time_sec = timess1 + str(self.client.GetHeaderValue(18))  # 시간(초)
+        date_time_sec = timess1 + str(self.client.GetHeaderValue(18)).zfill(6)  # 시간(초)
         exFlag = self.client.GetHeaderValue(19)  # 예상체결가구분플래그
         market_diff_flag = self.client.GetHeaderValue(20)  # 장구분플래그
 
-        c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS " + code +
-                  " (diff real, cur_price integer, high_price integer, low_price integer"
-                  ", sell_call integer, buy_call integer, acc_vol integer, pred_price integer, deal_state text, acc_sell_deal_vol integer"
-                  ", acc_buy_deal_vol integer , moment_deal_vol integer ,date_time_sec text, exFlag text, market_diff_flag text )")
-
-        # 여기에 필요한 데이터에 따라 컬럼명 변경
-        # 컬럼명 바꿔줘야 함.
-        # time 은 무조건
-
-        self.cnt2 += 1
-
         if (exFlag == ord('1')):  # 동시호가 시간 (예상체결)
-
-            # c.execute("CREATE TABLE IF NOT EXISTS BUYING_NUM "
-            #          "(COMPNAME text, TIME text, PRICE integer, DIFF integer, BUYNUM integer, BUYNUM_ACC integer)")
-            c.execute(
-                "INSERT OR IGNORE INTO " + code + " VALUES( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                ((diff, cur_price, high_price, low_price, sell_call,
-                  buy_call, acc_vol, pred_price, deal_state, acc_sell_deal_vol,
-                  acc_buy_deal_vol, moment_deal_vol,
-                  date_time_sec, exFlag, market_diff_flag)))
-            print("실시간(예상체결)", name, date_time_sec, "*", cur_price, "대비", diff, "체결량")
-            # 여기도
+            print("실시간(예상체결)", name, date_time_sec, "현재가", cur_price, "대비", diff, "t_time ", t_time)
 
         elif (exFlag == ord('2')):  # 장중(체결)
-            c.execute(
-                "INSERT OR IGNORE INTO " + code + " VALUES( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                ((diff, cur_price, high_price, low_price, sell_call,
-                  buy_call, acc_vol, pred_price, deal_state, acc_sell_deal_vol,
-                  acc_buy_deal_vol, moment_deal_vol,
-                  date_time_sec, exFlag, market_diff_flag)))
-            # 여기다가 넣을거 추가해야 함.
-            print("실시간(장중 체결)", name, date_time_sec, "*", cur_price, "대비", diff, "체결량")
+            print("실시간(장중 체결)", name, date_time_sec, "현재가", cur_price, "대비", diff, "t_time", t_time)
 
-    def OnDisConnect(self):
+    def OnDisConnect(self):     # exe file 실행
         print('CpEvent 연결 끊김!!!')
         os.startfile('main.exe')
         exit()
@@ -127,7 +95,6 @@ class CpMarketEye:
             rpCur = objRq.GetDataValue(5, i)  # 현재가
             rpVol = objRq.GetDataValue(6, i)  # 거래량
             print(rpCode, rpName, rpTime, rpDiffFlag, rpDiff, rpCur, rpVol, cnt)
-
         return True
 
     def OnDisConnect(self):
@@ -137,7 +104,6 @@ class CpMarketEye:
 
 
 class MyWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PLUS API TEST")
@@ -157,7 +123,7 @@ class MyWindow(QMainWindow):
         btnExit.move(20, 120)
         btnExit.clicked.connect(self.btnExit_clicked)
 
-        self.btnStart_clicked()
+        # self.btnStart_clicked()     # 프로그램 실행하면 실시간 수집 시작
 
     def StopSubscribe(self):
         if self.isSB:
@@ -169,12 +135,10 @@ class MyWindow(QMainWindow):
 
         self.objCur = []
 
-    def btnStart_clicked(self):
+    def btnStart_clicked(self):     # naver crawling 먼저 실행되어야함
         self.StopSubscribe()
 
-        # 요청 종목 배열
-
-        # IT서비스, 해운사, 조선, 광고, 건설
+        # 요청 종목 배열 /
         codes_list = []
         request_list = ('IT서비스', '해운사', '조선', '광고', '건설', '게임엔터테인먼트', '은행', '손해보험', '생명보험', '증권',
                         '식품', '화장품', '백화점과일반상점', '석유와가스', '음료', '반도체와반도체장비', '기계', '자동차', '자동차부품', '가정용기기와용품',
@@ -183,12 +147,8 @@ class MyWindow(QMainWindow):
         naver_codes = nfc.NaverFinanceCrawler()
         for request_ in request_list:
             codes_list.append(naver_codes.get_stock_code(request_))
-            # print(codes_list)
 
-        # 실시간데이터는 199개까지로 제한. 200개 부턴 안됨.
-        # 위에는 DB에서 종목코드 가져오는 코딩. 제대로 작동함.
         codes = list(chain(*codes_list))  # 모든 종목코드를 담음.
-        print(codes)
 
         # 요청 필드 배열 - 종목코드, 시간, 대비부호 대비, 현재가, 거래량, 종목명
 
@@ -205,10 +165,11 @@ class MyWindow(QMainWindow):
         print(cnt, "종목 실시간 현재가 요청 시작")
         self.isSB = True
 
+        self.bot.start_bot()
+        self.bot.trade(True, '샘숭전자', 100, 5)
+
     def btnStop_clicked(self):
-        # self.StopSubscribe()
-        os.startfile('main.exe')
-        exit()
+        self.StopSubscribe()
 
 
     def btnExit_clicked(self):

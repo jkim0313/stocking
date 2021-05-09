@@ -11,11 +11,11 @@ class AutoLogin:
         pass
 
     def login(self):  # 로그인
-        os.system('taskkill /IM coStarter* /F /T')
+        os.system('taskkill /IM ncStarter* /F /T')
         os.system('taskkill /IM CpStart* /F /T')
         os.system('taskkill /IM DibServer* /F /T')
 
-        os.system('wmic process where "name like \'%coStarter%\'" call terminate')
+        os.system('wmic process where "name like \'%ncStarter%\'" call terminate')
         os.system('wmic process where "name like \'%CpStart%\'" call terminate')
         os.system('wmic process where "name like \'%DibServer%\'" call terminate')
 

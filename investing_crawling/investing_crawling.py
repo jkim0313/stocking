@@ -15,7 +15,7 @@ class InvestingCrawler:
         self.base_url = 'https://kr.investing.com/'
 
         self.login_id = '아이디'       # csv 다운로드를 위해 로그인이 필수
-        self.login_pw = '비밀번호'                  # 구글, 페이스북 로그인이 아닌 이메일 회원가입으로 동작하게 작성됨
+        self.login_pw = '비밀번호'     # 구글, 페이스북 로그인이 아닌 이메일 회원가입으로 동작하게 작성됨
 
         self.kospi_url = 'indices/kospi-historical-data'
 
@@ -171,5 +171,5 @@ class InvestingCrawler:
         return x
 
 if __name__ == "__main__":
-    # InvestingCrawler().start_crawling('2011/04/01', '2020/12/31')   # 데이터 크롤링 시작. 시작 & 종료일 입력해야하며, 형식 맞춰야함(YYYY/MM/DD)
-    InvestingCrawler().merge_data() # 받은 데이터를 합치는 함수
+    InvestingCrawler().start_crawling('2011/04/01', '2021/04/26')   # 데이터 크롤링 시작. 시작 & 종료일 입력해야하며, 형식 맞춰야함(YYYY/MM/DD)
+    # InvestingCrawler().merge_data() # 받은 데이터를 합치는 함수

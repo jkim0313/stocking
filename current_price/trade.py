@@ -7,21 +7,18 @@ import ctypes
 class CurrentPrice:
     def __init__(self):
         # 연결 여부 체크
-        self.dicflag1 = {ord(' '): '현금',
-                         ord('Y'): '융자',
-                         ord('D'): '대주',
-                         ord('B'): '담보',
-                         ord('M'): '매입담보',
-                         ord('P'): '플러스론',
-                         ord('I'): '자기융자',
-                         }
+        self.dicflag1 = {
+                            ord(' '): '현금', ord('Y'): '융자', ord('D'): '대주',
+                            ord('B'): '담보', ord('M'): '매입담보', ord('P'): '플러스론',
+                            ord('I'): '자기융자',
+                        }
 
         self.objCpCybos = win32com.client.Dispatch("CpUtil.CpCybos")
         self.objCodeMgr = win32com.client.Dispatch('CpUtil.CpCodeMgr')
         self.objCpTrade = win32com.client.Dispatch('CpTrade.CpTdUtil')
 
         bConnect = self.objCpCybos.IsConnect
-        if (bConnect == 0):
+        if bConnect == 0:
             print("PLUS가 정상적으로 연결되지 않음. ")
             exit()
         conn = sqlite3.connect("../stock_kind.db", isolation_level=None)  # sqlite 연결
@@ -104,6 +101,7 @@ class CurrentPrice:
 
         rqStatus = objStockOrder.GetDibStatus()
         rqRet = objStockOrder.GetDibMsg1()
+        
         print("통신상태", rqStatus, rqRet)
         if rqStatus != 0:
             return rqStatus
@@ -124,7 +122,6 @@ class CurrentPrice:
         result = []
 
         while True:
-
             self.objRq.BlockRequest()
             # 통신 및 통신 에러 처리
             rqStatus = self.objRq.GetDibStatus()
@@ -133,7 +130,7 @@ class CurrentPrice:
             if rqStatus != 0:
                 return False
 
-            if len(result) == 0:
+            if len(result) == 0:        # +2 예수금
                 result.append(self.objRq.GetHeaderValue(9))
 
             cnt = self.objRq.GetHeaderValue(7)
@@ -149,14 +146,6 @@ class CurrentPrice:
                 item['cprice'] = self.get_current_price(item['name'])   # 현재 단가
 
                 result.append(item)
-
-                # key = code
-                # caller.jangoData[key] = item
-                # if len(caller.jangoData) >= 200:  # 최대 200 종목만,
-                #     break
-
-            # if len(caller.jangoData) >= 200:
-            #     break
 
             if not self.objRq.Continue:
                 break
